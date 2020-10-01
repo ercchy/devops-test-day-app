@@ -1,0 +1,65 @@
+version: '2.3'
+services:
+
+  api: &api
+    container_name: api
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: []
+#      - "3001:3000"
+    environment:
+      - DATABASE_PASS=dtest # put this into an env file
+      - OPEN_WEATHER_API_KEY=d03b13e3222c736920eaa0fcb5728369 # put this into an env file
+
+  sidekiq:
+    <<: *api
+    container_name: sidekiq
+    ports: []
+    volumes:
+      - .:/code/
+    command: "sh /code/start_sidekiq.sh"
+
+  api_development:
+    <<: *api
+    container_name: api_development
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/code/
+
+  db:
+    image: postgres:12-alpine
+    container_name: db
+    volumes:
+      - ./persistance:/var/lib/postgresql/data/
+      - ./logs/redis:/var/log/postgres
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=weather_app
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=dtest
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d weather_app"]
+      interval: 5s
+      timeout: 1s
+      retries: 10
+
+  redis_master:
+    image: redis:latest
+    container_name: redis
+    command: redis-server --appendonly yes
+    volumes:
+      - ./persistance/redis:/data
+      - ./logs/redis:/var/log/redis
+    ports:
+      - 6379:6379
