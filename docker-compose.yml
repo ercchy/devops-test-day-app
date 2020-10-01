@@ -14,7 +14,7 @@ services:
 #      - "3001:3000"
     environment:
       - DATABASE_PASS=dtest # put this into an env file
-      - OPEN_WEATHER_API_KEY=d03b13e3222c736920eaa0fcb5728369 # put this into an env file
+      - OPEN_WEATHER_API_KEY= # put this into an env file
 
   sidekiq:
     <<: *api
